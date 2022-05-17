@@ -16,69 +16,160 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * struct stat
+ * mkdir()
+ * stat()
+ */
+#include <sys/stat.h>
+
 #include <sys/types.h>
 
 #include <limits.h>
-#include <math.h>
+
+/*
+ * const DT_*
+ * struct DIR
+ * struct dirent
+ * closedir()
+ * opendir()
+ * readdir()
+ */
+#include <dirent.h>
+
+/*
+ * NOTE: This must come before kcgi.h.
+ *
+ * va_list
+ */
+#include <stdarg.h>
+
+/*
+ * Functions for CGI.
+ */
+#include <kcgi.h>
+
+/*
+ * const std*
+ * FILE
+ */
 #include <stdio.h>
+
+/*
+ * exit()
+ */
 #include <stdlib.h>
+
+/*
+ * strncmp()
+ */
 #include <string.h>
+
+/*
+ * time()
+ */
+#include <time.h>
+
+/*
+ * unlink()
+ */
+#include <unistd.h>
 
 #include <curl/curl.h>
 
-struct progressData {
-	const char	*host;
-	const char	*file;
-	const char	*url;
-	int		 longest;
-} data;
+struct infoStruct {
+	char	 basePath[PATH_MAX];
+	char	 baseUrl[PATH_MAX];
+	char	 path[PATH_MAX];
+	char	 url[PATH_MAX];
+	int	 fileItemCount;
+	char	 fileList[255][255];
+	int	 downloadItemCount;
+	char	 downloadList[255][255];
+};
 
-static unsigned int	 longestString(const char **, int);
-static unsigned int	 progressBar(void *, curl_off_t, curl_off_t, curl_off_t, curl_off_t);
-static size_t		 writeData(void *, size_t, size_t, FILE *);
+void		 checkTime(struct infoStruct*);
+void		 downloadMetar(struct infoStruct*);
+void		 emptyDir(struct infoStruct*);
+void		 parseMetar(struct infoStruct*);
+void		 writeOutputHead(char*);
+void		 writeOutputFoot(char*);
+static size_t	 writeData(void *, size_t, size_t, FILE *);
 
 int
 main(int argc, char *argv[])
 {
-	CURL		*curl;
-	FILE		*fp = NULL;
-	unsigned int	 i = 0;
-	unsigned int	 longest = 0;
-	const char	*host = "https://aviationweather.gov/adds/dataserver_current/current/";
-	const char	*extension = ".cache.csv";
-	const char	*fileList[5];
+	struct infoStruct info;
 
-	fileList[0] = "aircraftreports";
-	fileList[1] = "airsigmets";
-	fileList[2] = "metars";
-	fileList[3] = "pireps";
-	fileList[4] = "tafs";
+	info.fileItemCount = 5;
+	info.downloadItemCount = 0;
 
-	longest = longestString(fileList, sizeof(fileList) / sizeof(*fileList));
+	(void) strcpy(info.basePath, "/tmp/weather/");
+	(void) strcpy(info.baseUrl, "https://aviationweather.gov/adds/dataserver_current/current/");
 
-	system("rm -Rf /tmp/weather");
-	system("mkdir -m 755 /tmp/weather");
+	(void) strcpy(info.fileList[0], "aircraftreports.cache.csv");
+	(void) strcpy(info.fileList[1], "airsigmets.cache.csv");
+	(void) strcpy(info.fileList[2], "metars.cache.csv");
+	(void) strcpy(info.fileList[3], "pireps.cache.csv");
+	(void) strcpy(info.fileList[4], "tafs.cache.csv");
 
-	fprintf(stdout, "%s\n", "Downloading files:");
+	checkTime(&info);
 
-	for(i = 0; i < (sizeof(fileList) / sizeof(*fileList)); i++) {
-		char	 url[255];
-		char	 outFile[255];
+	if (info.downloadItemCount > 0)
+	{
+		emptyDir(&info);
+		downloadMetar(&info);
+	}
 
-		snprintf(url, 255,"%s%s%s", host, fileList[i],  extension);
-		snprintf(outFile, 255,"%s%s%s", "/tmp/weather/", fileList[i], extension);
+	parseMetar(&info);
+
+	return 0;
+}
+
+void
+checkTime(struct infoStruct *info)
+{
+	struct stat	 fileInfo;
+	int		 i = 0;
+
+	for (i = 0; i < info->fileItemCount; i++) {
+		(void) strncpy(info->path, "", 2);
+		(void) strncat(info->path, info->basePath, strlen(info->basePath));
+		(void) strncat(info->path, info->fileList[i], strlen(info->fileList[i]));
+
+		(void) stat(info->path, &fileInfo);
+
+		if (((unsigned long)time(NULL) - fileInfo.st_mtime) >= 300) {
+			(void) strcpy(info->downloadList[info->downloadItemCount], info->fileList[i]);
+			info->downloadItemCount++;
+		}
+	}
+
+	return;
+}
+
+void
+downloadMetar(struct infoStruct *info)
+{
+	CURL	*curl;
+	FILE	*fp = NULL;
+	int	 i = 0;
+
+	for (i = 0; i < info->downloadItemCount; i++) {
+		(void) strncpy(info->url, "", 2);
+		(void) strncat(info->url, info->baseUrl, strlen(info->baseUrl));
+		(void) strncat(info->url, info->downloadList[i], strlen(info->downloadList[i]));
+
+		(void) strncpy(info->path, "", 2);
+		(void) strncat(info->path, info->basePath, strlen(info->basePath));
+		(void) strncat(info->path, info->downloadList[i], strlen(info->downloadList[i]));
 
 		curl = curl_easy_init();
 
 		if (curl) {
 			CURLcode res = CURLE_OK;
 
-			data.host = host;
-			data.file = fileList[i];
-			data.url = url;
-			data.longest = longest;
-
-			curl_easy_setopt(curl, CURLOPT_URL, data.url);
+			curl_easy_setopt(curl, CURLOPT_URL, info->url);
 			curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
 			curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1);
 			curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
@@ -86,15 +177,15 @@ main(int argc, char *argv[])
 			res = curl_easy_perform(curl);
 
 			if (res != CURLE_OK) {
-				fprintf(stdout, "\r%-*s", data.longest, "Download failed.");
-			} else {
-				fp = fopen(outFile, "wb");
+				(void) fprintf(stderr, "%s\n", "Download failed.");
 
-				curl_easy_setopt(curl, CURLOPT_URL, data.url);
+				exit(1);
+			} else {
+				fp = fopen(info->path, "w");
+
+				curl_easy_setopt(curl, CURLOPT_URL, info->url);
 				curl_easy_setopt(curl, CURLOPT_NOBODY, 0);
-				curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-				curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, progressBar);
-				curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &data);
+				curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1);
 				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeData);
 				curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 				curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
@@ -105,81 +196,100 @@ main(int argc, char *argv[])
 			curl_easy_cleanup(curl);
 
 			if (fp != NULL) {
-			    fclose(fp);
+				fclose(fp);
 			}
 		}
-
-		fprintf(stdout, "%s", "\n");
 	}
 
-/*
-	fprintf(stdout, "%s", "\n");
-
-	fprintf(stdout, "%s\n", "Unzipping files:");
-
-	for(i = 0; i < (sizeof(fileList) / sizeof(*fileList)); i++) {
-		char	 outFile[255];
-		char	 gunzipCmd[255];
-
-		snprintf(gunzipCmd, 255,"%s%s%s%s", "gunzip ","/tmp/weather/", fileList[i], extension);
-
-		system(gunzipCmd);
-	}
-*/
-
-	fprintf(stdout, "\n%s\n", "Done.");
-
-	return 0;
+	return;
 }
 
-static unsigned int
-longestString(const char **lines, int arrayLength)
+void
+emptyDir(struct infoStruct *info)
 {
-	int	i = 0;
-	int	longest = 0;
+	DIR		*directory;
+	struct dirent	*ent = NULL;
+	int		 i = 0;
+	int		 ret = 0;
 
-	for (i = 0; i < arrayLength; i++) {
-	    if (strlen(lines[i]) > longest) {
-	    	longest = strlen(lines[i]);
-	    }
+	for (i = 0; i < info->downloadItemCount; i++) {
+		if ((directory = opendir(info->basePath)) != NULL) {
+			while ((ent = readdir(directory)) != NULL) {
+				if (strncmp(ent->d_name, info->downloadList[i], sizeof(ent->d_name)) == 0) {
+					(void) strncpy(info->path, "", 1);
+					(void) strncat(info->path, info->basePath, 15);
+					(void) strncat(info->path, info->downloadList[i], strlen(info->downloadList[i]));
+					(void) unlink(info->path);
+				}
+			}
+		} else {
+			ret = mkdir(info->basePath, 0700);
+
+			if (ret != 0)
+			{
+				(void) fprintf(stderr, "Error accessing or creating directory: %s\n", info->basePath);
+
+				exit(1);
+			}
+		}
 	}
 
-	return longest;
+	return;
 }
 
-static unsigned int
-progressBar(void *ptr, curl_off_t totalToDownload, curl_off_t nowDownloaded, curl_off_t totalToUpload, curl_off_t nowUploaded)
+void
+parseMetar(struct infoStruct *info)
 {
-	struct		 progressData *pData = (struct progressData*)ptr;
-	int		 totalDots = 25;
-	int		 ii = 0;
+	FILE	*fp;
+	char	*line = NULL;
+	size_t	 len = 0;
+	int	 total = 0;
+	ssize_t	 read;
+	int	 i = 0;
 
-	double		 fractionDownloaded = (double)nowDownloaded / (double)totalToDownload;
-	double		 dots = round(fractionDownloaded * totalDots);
+	for (i = 0; i < info->fileItemCount; i++) {
+		if (strncmp(info->fileList[i], "metars", 6) == 0) {
+			(void) strncpy(info->path, "", 2);
+			(void) strncat(info->path, info->basePath, strlen(info->basePath));
+			(void) strncat(info->path, "metars.cache.csv", strlen("metars.cache.csv"));
 
-	if (totalToDownload <= 0.0) {
-		return 0;
+			fp = fopen(info->path, "r");
+
+			if (fp == NULL) {
+				return;
+			}
+
+			while ((read = getline(&line, &len, fp)) != -1)
+			{
+				if(total < 6) {
+					total++;
+
+					continue;
+				}
+
+				if (total == 6) {
+					// strtok()
+					fprintf(stdout, "%s", line);
+				}
+
+				total++;
+			}
+		}
 	}
 
-	fprintf(stdout, "\r%-*s [", pData->longest, pData->file);
+	return;
+}
 
-	while (ii < dots) {
-	    fprintf(stdout, "%s", "#");
+void
+writeOutputHead(char *station)
+{
+	return;
+}
 
-	    ii++;
-	}
-
-	while (ii < totalDots) {
-	    fprintf(stdout, "%s", "-");
-
-	    ii++;
-	}
-
-	fprintf(stdout, "] %3d%%", ((int)(fractionDownloaded * 100)));
-
-	fflush(stdout);
-
-	return 0;
+void
+writeOutputFoot(char *station)
+{
+	return;
 }
 
 static size_t
