@@ -35,7 +35,7 @@ lex_test:
 	lex lex.l
 	gcc lex.yy.c -o lex_test -lfl
 metar:
-	$(CC) $(CLFAGS) $LDFLAGS) -lcrypto -lcurl -lkcgi -lnghttp2 -lpthread -lssl -lz -static -o metar metar.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -lcrypto -lcurl -lkcgi -lnghttp2 -lpthread -lssl -lz -static -o metar metar.c
 
 mysql:
 	$(CC) $(CFLAGS) $(LDFLAGS) `mysql_config --cflags --libs` -o mysql mysql.c
