@@ -62,6 +62,7 @@
 
 /*
  * strncmp()
+ * strsep()
  */
 #include <string.h>
 
@@ -246,6 +247,7 @@ parseMetar(struct infoStruct *info)
 	int	 total = 0;
 	ssize_t	 read;
 	int	 i = 0;
+	char	*token;
 
 	for (i = 0; i < info->fileItemCount; i++) {
 		if (strncmp(info->fileList[i], "metars", 6) == 0) {
@@ -268,8 +270,9 @@ parseMetar(struct infoStruct *info)
 				}
 
 				if (total == 6) {
-					// strtok()
-					fprintf(stdout, "%s", line);
+					while ((token = strsep(&line, ",")) != NULL) {
+						(void) fprintf(stdout, "%s\n", token);
+					}
 				}
 
 				total++;
