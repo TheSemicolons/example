@@ -89,6 +89,53 @@ struct infoStruct {
 	char	 downloadList[255][255];
 };
 
+struct metarLine {
+	char	raw_text;
+	char	station_id;
+	char	observation_time;
+	char	latitude;
+	char	longitude;
+	char	temp_c;
+	char	dewpoint_c;
+	char	wind_dir_degrees;
+	char	wind_speed_kt;
+	char	wind_gust_kt;
+	char	visibility_statute_mi;
+	char	altim_in_hg;
+	char	sea_level_pressure_mb;
+	char	corrected;
+	char	is_auto;
+	char	auto_station;
+	char	maintenance_indicator_on;
+	char	no_signal;
+	char	lightning_sensor_off;
+	char	freezing_rain_sensor_off;
+	char	present_weather_sensor_off;
+	char	wx_string;
+	char	sky_cover_0;
+	char	cloud_base_ft_agl_0;
+	char	sky_cover_1;
+	char	cloud_base_ft_agl_1;
+	char	sky_cover_2;
+	char	cloud_base_ft_agl_2;
+	char	sky_cover_3;
+	char	cloud_base_ft_agl_3;
+	char	flight_category;
+	char	three_hr_pressure_tendency_mb;
+	char	maxT_c;
+	char	minT_c;
+	char	maxT24hr_c;
+	char	minT24hr_c;
+	char	precip_in;
+	char	pcp3hr_in;
+	char	pcp6hr_in;
+	char	pcp24hr_in;
+	char	snow_in;
+	char	vert_vis_ft;
+	char	metar_type;
+	char	elevation_m;
+};
+
 void		 checkTime(struct infoStruct*);
 void		 downloadMetar(struct infoStruct*);
 void		 emptyDir(struct infoStruct*);
@@ -248,6 +295,7 @@ parseMetar(struct infoStruct *info)
 	ssize_t	 read;
 	int	 i = 0;
 	char	*token;
+	int	 x = 0;
 
 	for (i = 0; i < info->fileItemCount; i++) {
 		if (strncmp(info->fileList[i], "metars", 6) == 0) {
@@ -270,8 +318,11 @@ parseMetar(struct infoStruct *info)
 				}
 
 				if (total == 6) {
+					x = 0;
+
 					while ((token = strsep(&line, ",")) != NULL) {
 						(void) fprintf(stdout, "%s\n", token);
+						x++;
 					}
 				}
 
