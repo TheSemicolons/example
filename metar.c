@@ -81,6 +81,8 @@
 struct infoStruct {
 	char	 basePath[PATH_MAX];
 	char	 baseUrl[PATH_MAX];
+	char	 outputBasePath[PATH_MAX];
+	char	 outputPath[PATH_MAX];
 	char	 path[PATH_MAX];
 	char	 url[PATH_MAX];
 	int	 fileItemCount;
@@ -90,58 +92,57 @@ struct infoStruct {
 };
 
 struct metarLine {
-	char	raw_text;
-	char	station_id;
-	char	observation_time;
-	char	latitude;
-	char	longitude;
-	char	temp_c;
-	char	dewpoint_c;
-	char	wind_dir_degrees;
-	char	wind_speed_kt;
-	char	wind_gust_kt;
-	char	visibility_statute_mi;
-	char	altim_in_hg;
-	char	sea_level_pressure_mb;
-	char	corrected;
-	char	is_auto;
-	char	auto_station;
-	char	maintenance_indicator_on;
-	char	no_signal;
-	char	lightning_sensor_off;
-	char	freezing_rain_sensor_off;
-	char	present_weather_sensor_off;
-	char	wx_string;
-	char	sky_cover_0;
-	char	cloud_base_ft_agl_0;
-	char	sky_cover_1;
-	char	cloud_base_ft_agl_1;
-	char	sky_cover_2;
-	char	cloud_base_ft_agl_2;
-	char	sky_cover_3;
-	char	cloud_base_ft_agl_3;
-	char	flight_category;
-	char	three_hr_pressure_tendency_mb;
-	char	maxT_c;
-	char	minT_c;
-	char	maxT24hr_c;
-	char	minT24hr_c;
-	char	precip_in;
-	char	pcp3hr_in;
-	char	pcp6hr_in;
-	char	pcp24hr_in;
-	char	snow_in;
-	char	vert_vis_ft;
-	char	metar_type;
-	char	elevation_m;
+	char	 raw_text[PATH_MAX];
+	char	 station_id[PATH_MAX];
+	char	 observation_time[PATH_MAX];
+	char	 latitude[PATH_MAX];
+	char	 longitude[PATH_MAX];
+	char	 temp_c[PATH_MAX];
+	char	 dewpoint_c[PATH_MAX];
+	char	 wind_dir_degrees[PATH_MAX];
+	char	 wind_speed_kt[PATH_MAX];
+	char	 wind_gust_kt[PATH_MAX];
+	char	 visibility_statute_mi[PATH_MAX];
+	char	 altim_in_hg[PATH_MAX];
+	char	 sea_level_pressure_mb[PATH_MAX];
+	char	 corrected[PATH_MAX];
+	char	 is_auto[PATH_MAX];
+	char	 auto_station[PATH_MAX];
+	char	 maintenance_indicator_on[PATH_MAX];
+	char	 no_signal[PATH_MAX];
+	char	 lightning_sensor_off[PATH_MAX];
+	char	 freezing_rain_sensor_off[PATH_MAX];
+	char	 present_weather_sensor_off[PATH_MAX];
+	char	 wx_string[PATH_MAX];
+	char	 sky_cover_0[PATH_MAX];
+	char	 cloud_base_ft_agl_0[PATH_MAX];
+	char	 sky_cover_1[PATH_MAX];
+	char	 cloud_base_ft_agl_1[PATH_MAX];
+	char	 sky_cover_2[PATH_MAX];
+	char	 cloud_base_ft_agl_2[PATH_MAX];
+	char	 sky_cover_3[PATH_MAX];
+	char	 cloud_base_ft_agl_3[PATH_MAX];
+	char	 flight_category[PATH_MAX];
+	char	 three_hr_pressure_tendency_mb[PATH_MAX];
+	char	 maxT_c[PATH_MAX];
+	char	 minT_c[PATH_MAX];
+	char	 maxT24hr_c[PATH_MAX];
+	char	 minT24hr_c[PATH_MAX];
+	char	 precip_in[PATH_MAX];
+	char	 pcp3hr_in[PATH_MAX];
+	char	 pcp6hr_in[PATH_MAX];
+	char	 pcp24hr_in[PATH_MAX];
+	char	 snow_in[PATH_MAX];
+	char	 vert_vis_ft[PATH_MAX];
+	char	 metar_type[PATH_MAX];
+	char	 elevation_m[PATH_MAX];
 };
 
 void		 checkTime(struct infoStruct*);
 void		 downloadMetar(struct infoStruct*);
 void		 emptyDir(struct infoStruct*);
 void		 parseMetar(struct infoStruct*);
-void		 writeOutputHead(char*);
-void		 writeOutputFoot(char*);
+void		 writeMetar(struct infoStruct*, char*);
 static size_t	 writeData(void *, size_t, size_t, FILE *);
 
 int
@@ -152,7 +153,8 @@ main(int argc, char *argv[])
 	info.fileItemCount = 5;
 	info.downloadItemCount = 0;
 
-	(void) strcpy(info.basePath, "/tmp/weather/");
+	(void) strcpy(info.basePath, "/tmp/weather/raw/");
+	(void) strcpy(info.outputBasePath, "/tmp/weather/output/");
 	(void) strcpy(info.baseUrl, "https://aviationweather.gov/adds/dataserver_current/current/");
 
 	(void) strcpy(info.fileList[0], "aircraftreports.cache.csv");
@@ -167,9 +169,8 @@ main(int argc, char *argv[])
 	{
 		emptyDir(&info);
 		downloadMetar(&info);
+		parseMetar(&info);
 	}
-
-	parseMetar(&info);
 
 	return 0;
 }
@@ -178,17 +179,24 @@ void
 checkTime(struct infoStruct *info)
 {
 	struct stat	 fileInfo;
+	int		 ret = 0;
 	int		 i = 0;
 
 	for (i = 0; i < info->fileItemCount; i++) {
-		(void) strncpy(info->path, "", 2);
-		(void) strncat(info->path, info->basePath, strlen(info->basePath));
+		(void) strlcpy(info->path, info->basePath, strlen(info->basePath) + 1);
 		(void) strncat(info->path, info->fileList[i], strlen(info->fileList[i]));
 
-		(void) stat(info->path, &fileInfo);
+		ret = stat(info->path, &fileInfo);
 
-		if (((unsigned long)time(NULL) - fileInfo.st_mtime) >= 300) {
-			(void) strcpy(info->downloadList[info->downloadItemCount], info->fileList[i]);
+		if (ret == -1) {
+			(void) strlcpy(info->downloadList[info->downloadItemCount], info->fileList[i], strlen(info->fileList[i]) + 1);
+
+			info->downloadItemCount++;
+		}
+
+		if ((ret == 0) && (((unsigned long)time(NULL) - fileInfo.st_mtime) >= 300)) {
+			(void) strlcpy(info->downloadList[info->downloadItemCount], info->fileList[i], strlen(info->fileList[i]) + 1);
+
 			info->downloadItemCount++;
 		}
 	}
@@ -204,12 +212,10 @@ downloadMetar(struct infoStruct *info)
 	int	 i = 0;
 
 	for (i = 0; i < info->downloadItemCount; i++) {
-		(void) strncpy(info->url, "", 2);
-		(void) strncat(info->url, info->baseUrl, strlen(info->baseUrl));
+		(void) strlcpy(info->url, info->baseUrl, strlen(info->baseUrl) + 1);
 		(void) strncat(info->url, info->downloadList[i], strlen(info->downloadList[i]));
 
-		(void) strncpy(info->path, "", 2);
-		(void) strncat(info->path, info->basePath, strlen(info->basePath));
+		(void) strlcpy(info->path, info->basePath, strlen(info->basePath) + 1);
 		(void) strncat(info->path, info->downloadList[i], strlen(info->downloadList[i]));
 
 		curl = curl_easy_init();
@@ -263,9 +269,12 @@ emptyDir(struct infoStruct *info)
 	for (i = 0; i < info->downloadItemCount; i++) {
 		if ((directory = opendir(info->basePath)) != NULL) {
 			while ((ent = readdir(directory)) != NULL) {
+				if ((strncmp(ent->d_name, ".", 1) == 0) || (strncmp(ent->d_name, "..", 2) == 0)) {
+					continue;
+				}
+
 				if (strncmp(ent->d_name, info->downloadList[i], sizeof(ent->d_name)) == 0) {
-					(void) strncpy(info->path, "", 1);
-					(void) strncat(info->path, info->basePath, 15);
+					(void) strlcpy(info->path, info->basePath, strlen(info->basePath) + 1);
 					(void) strncat(info->path, info->downloadList[i], strlen(info->downloadList[i]));
 					(void) unlink(info->path);
 				}
@@ -288,20 +297,40 @@ emptyDir(struct infoStruct *info)
 void
 parseMetar(struct infoStruct *info)
 {
-	FILE	*fp;
-	char	*line = NULL;
-	size_t	 len = 0;
-	int	 total = 0;
-	ssize_t	 read;
-	int	 i = 0;
-	char	*token;
-	int	 x = 0;
+	DIR		*directory;
+	FILE		*fp;
+	struct dirent	*ent = NULL;
+	char		*line = NULL;
+	int		 i = 0;
+	int		 total = 0;
+	int		 y = 0;
+	size_t		 len = 0;
+	ssize_t		 read;
+
+	if ((directory = opendir(info->outputBasePath)) == NULL) {
+		if (mkdir(info->outputBasePath, 0700) != 0) {
+			(void) fprintf(stderr, "Output directory does not exist: %s\n", info->outputBasePath);
+
+			exit(1);
+		}
+	}
+
+	if ((directory = opendir(info->outputBasePath)) != NULL) {
+		while ((ent = readdir(directory)) != NULL) {
+			if ((strncmp(ent->d_name, ".", 1) == 0) || (strncmp(ent->d_name, "..", 2) == 0)) {
+				continue;
+			}
+
+			(void) strlcpy(info->path, info->outputBasePath, strlen(info->outputBasePath) + 1);
+			(void) strncat(info->path, ent->d_name, strlen(ent->d_name));
+			(void) unlink(info->path);
+		}
+	}
 
 	for (i = 0; i < info->fileItemCount; i++) {
 		if (strncmp(info->fileList[i], "metars", 6) == 0) {
-			(void) strncpy(info->path, "", 2);
-			(void) strncat(info->path, info->basePath, strlen(info->basePath));
-			(void) strncat(info->path, "metars.cache.csv", strlen("metars.cache.csv"));
+			(void) strlcpy(info->path, info->basePath, strlen(info->basePath) + 1);
+			(void) strncat(info->path, info->fileList[i], strlen(info->fileList[i]));
 
 			fp = fopen(info->path, "r");
 
@@ -317,13 +346,8 @@ parseMetar(struct infoStruct *info)
 					continue;
 				}
 
-				if (total == 6) {
-					x = 0;
-
-					while ((token = strsep(&line, ",")) != NULL) {
-						(void) fprintf(stdout, "%s\n", token);
-						x++;
-					}
+				if (total >= 6) {
+					writeMetar(info, line);
 				}
 
 				total++;
@@ -335,14 +359,195 @@ parseMetar(struct infoStruct *info)
 }
 
 void
-writeOutputHead(char *station)
+writeMetar(struct infoStruct *info, char *line)
 {
-	return;
-}
+	FILE			*ofp;
+	struct metarLine	 metar;
+	char			*token;
+	int			 x = 0;
 
-void
-writeOutputFoot(char *station)
-{
+	while ((token = strsep(&line, ",")) != NULL) {
+		switch (x) {
+		case 0:
+			(void) strncpy(metar.raw_text, token, strlen(token));
+			break;
+		case 1:
+			(void) strncpy(metar.station_id, token, strlen(token));
+			break;
+		case 2:
+			(void) strncpy(metar.observation_time, token, strlen(token));
+			metar.observation_time[10] = ' ';
+			break;
+		case 3:
+			(void) strncpy(metar.latitude, token, strlen(token));
+			break;
+		case 4:
+			(void) strncpy(metar.longitude, token, strlen(token));
+			break;
+		case 5:
+			(void) strncpy(metar.temp_c, token, strlen(token));
+			break;
+		case 6:
+			(void) strncpy(metar.dewpoint_c, token, strlen(token));
+			break;
+		case 7:
+			(void) strncpy(metar.wind_dir_degrees, token, strlen(token));
+			break;
+		case 8:
+			(void) strncpy(metar.wind_speed_kt, token, strlen(token));
+			break;
+		case 9:
+			(void) strncpy(metar.wind_gust_kt, token, strlen(token));
+			break;
+		case 10:
+			(void) strncpy(metar.visibility_statute_mi, token, strlen(token));
+			break;
+		case 11:
+			(void) strncpy(metar.altim_in_hg, token, strlen(token));
+			break;
+		case 12:
+			(void) strncpy(metar.sea_level_pressure_mb, token, strlen(token));
+			break;
+		case 13:
+			(void) strncpy(metar.corrected, token, strlen(token));
+			break;
+		case 14:
+			(void) strncpy(metar.is_auto, token, strlen(token));
+			break;
+		case 15:
+			(void) strncpy(metar.auto_station, token, strlen(token));
+			break;
+		case 16:
+			(void) strncpy(metar.maintenance_indicator_on, token, strlen(token));
+			break;
+		case 17:
+			(void) strncpy(metar.no_signal, token, strlen(token));
+			break;
+		case 18:
+			(void) strncpy(metar.lightning_sensor_off, token, strlen(token));
+			break;
+		case 19:
+			(void) strncpy(metar.freezing_rain_sensor_off, token, strlen(token));
+			break;
+		case 20:
+			(void) strncpy(metar.present_weather_sensor_off, token, strlen(token));
+			break;
+		case 21:
+			(void) strncpy(metar.wx_string, token, strlen(token));
+			break;
+		case 22:
+			(void) strncpy(metar.sky_cover_0, token, strlen(token));
+			break;
+		case 23:
+			(void) strncpy(metar.cloud_base_ft_agl_0, token, strlen(token));
+			break;
+		case 24:
+			(void) strncpy(metar.sky_cover_1, token, strlen(token));
+			break;
+		case 25:
+			(void) strncpy(metar.cloud_base_ft_agl_1, token, strlen(token));
+			break;
+		case 26:
+			(void) strncpy(metar.sky_cover_2, token, strlen(token));
+			break;
+		case 27:
+			(void) strncpy(metar.cloud_base_ft_agl_2, token, strlen(token));
+			break;
+		case 28:
+			(void) strncpy(metar.sky_cover_3, token, strlen(token));
+			break;
+		case 29:
+			(void) strncpy(metar.cloud_base_ft_agl_3, token, strlen(token));
+			break;
+		case 30:
+			(void) strncpy(metar.flight_category, token, strlen(token));
+			break;
+		case 31:
+			(void) strncpy(metar.three_hr_pressure_tendency_mb, token, strlen(token));
+			break;
+		case 32:
+			(void) strncpy(metar.maxT_c, token, strlen(token));
+			break;
+		case 33:
+			(void) strncpy(metar.minT_c, token, strlen(token));
+			break;
+		case 34:
+			(void) strncpy(metar.maxT24hr_c, token, strlen(token));
+			break;
+		case 35:
+			(void) strncpy(metar.minT24hr_c, token, strlen(token));
+			break;
+		case 36:
+			(void) strncpy(metar.precip_in, token, strlen(token));
+			break;
+		case 37:
+			(void) strncpy(metar.pcp3hr_in, token, strlen(token));
+			break;
+		case 38:
+			(void) strncpy(metar.pcp6hr_in, token, strlen(token));
+			break;
+		case 39:
+			(void) strncpy(metar.pcp24hr_in, token, strlen(token));
+			break;
+		case 40:
+			(void) strncpy(metar.snow_in, token, strlen(token));
+			break;
+		case 41:
+			(void) strncpy(metar.vert_vis_ft, token, strlen(token));
+			break;
+		case 42:
+			(void) strncpy(metar.metar_type, token, strlen(token));
+			break;
+		case 43:
+			if (strlen(token) > 1) {
+				(void) strncpy(metar.elevation_m, token, strlen(token) - 1);
+			} else {
+				(void) strncpy(metar.elevation_m, token, strlen(token));
+			}
+			break;
+		default:
+			break;
+		};
+
+		x++;
+	}
+
+
+	(void) strlcpy(info->outputPath, info->outputBasePath, strlen(info->outputBasePath) + 1);
+	(void) strncat(info->outputPath, metar.station_id, strlen(metar.station_id));
+
+	ofp = fopen(info->outputPath, "w");
+
+	if (ofp == NULL) {
+		(void) fprintf(stderr, "Could not open %s for writing.\n", metar.station_id);
+	}
+
+	(void) fprintf(ofp, "Station: %s<br />\n", metar.station_id);
+	(void) fprintf(ofp, "Type: %s<br />\n", metar.metar_type);
+
+	if (strlen(metar.maintenance_indicator_on) > 0) {
+		(void) fprintf(ofp, "Maint: %s<br />\n", metar.maintenance_indicator_on);
+	}
+
+	(void) fprintf(ofp, "Time: %s<br />\n", metar.observation_time);
+	(void) fprintf(ofp, "Location: %s, %s<br />\n", metar.latitude, metar.longitude);
+	(void) fprintf(ofp, "Elevation: %s meters<br />\n", metar.elevation_m);
+	(void) fprintf(ofp, "Temp: %s&deg;C<br />\n", metar.temp_c);
+	(void) fprintf(ofp, "Dewpoint: %s&deg;C<br />\n", metar.dewpoint_c);
+	(void) fprintf(ofp, "Wind: From %s degrees at %s knots<br />\n", metar.wind_dir_degrees, metar.wind_speed_kt);
+
+	if (strlen(metar.wind_gust_kt) > 0) {
+		(void) fprintf(ofp, "Gust: %s knots<br />\n", metar.wind_gust_kt);
+	}
+
+	(void) fprintf(ofp, "Visibility: %s miles<br />\n", metar.visibility_statute_mi);
+	(void) fprintf(ofp, "Altimeter: %s<br />\n", metar.altim_in_hg);
+
+	if (strlen(metar.wx_string) > 0) {
+		(void) fprintf(ofp, "Weather: %s<br />\n", metar.wx_string);
+	}
+
+	fclose(ofp);
 	return;
 }
 

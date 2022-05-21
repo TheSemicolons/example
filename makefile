@@ -51,6 +51,5 @@ threads:
 
 clean:
 	rm -f *.o *.core *.yy.c
-nuke:
-	rm -f *.o core
+nuke: clean
 	rm -f check_password lex_test metar mysql spin struct threads
