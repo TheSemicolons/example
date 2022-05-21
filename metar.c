@@ -362,148 +362,150 @@ void
 writeMetar(struct infoStruct *info, char *line)
 {
 	FILE			*ofp;
-	struct metarLine	 metar;
+	//struct metarLine	 metar;
 	char			*token;
 	int			 x = 0;
+
+	struct metarLine *metar = malloc(sizeof(struct metarLine));
 
 	while ((token = strsep(&line, ",")) != NULL) {
 		switch (x) {
 		case 0:
-			(void) strncpy(metar.raw_text, token, strlen(token));
+			(void) strncpy(metar->raw_text, token, strlen(token) + 1);
 			break;
 		case 1:
-			(void) strncpy(metar.station_id, token, strlen(token));
+			(void) strncpy(metar->station_id, token, strlen(token) + 1);
 			break;
 		case 2:
-			(void) strncpy(metar.observation_time, token, strlen(token));
-			metar.observation_time[10] = ' ';
+			(void) strncpy(metar->observation_time, token, strlen(token) + 1);
+			metar->observation_time[10] = ' ';
 			break;
 		case 3:
-			(void) strncpy(metar.latitude, token, strlen(token));
+			(void) strncpy(metar->latitude, token, strlen(token) + 1);
 			break;
 		case 4:
-			(void) strncpy(metar.longitude, token, strlen(token));
+			(void) strncpy(metar->longitude, token, strlen(token) + 1);
 			break;
 		case 5:
-			(void) strncpy(metar.temp_c, token, strlen(token));
+			(void) strncpy(metar->temp_c, token, strlen(token) + 1);
 			break;
 		case 6:
-			(void) strncpy(metar.dewpoint_c, token, strlen(token));
+			(void) strncpy(metar->dewpoint_c, token, strlen(token) + 1);
 			break;
 		case 7:
-			(void) strncpy(metar.wind_dir_degrees, token, strlen(token));
+			(void) strncpy(metar->wind_dir_degrees, token, strlen(token) + 1);
 			break;
 		case 8:
-			(void) strncpy(metar.wind_speed_kt, token, strlen(token));
+			(void) strncpy(metar->wind_speed_kt, token, strlen(token) + 1);
 			break;
 		case 9:
-			(void) strncpy(metar.wind_gust_kt, token, strlen(token));
+			(void) strncpy(metar->wind_gust_kt, token, strlen(token) + 1);
 			break;
 		case 10:
-			(void) strncpy(metar.visibility_statute_mi, token, strlen(token));
+			(void) strncpy(metar->visibility_statute_mi, token, strlen(token) + 1);
 			break;
 		case 11:
-			(void) strncpy(metar.altim_in_hg, token, strlen(token));
+			(void) strncpy(metar->altim_in_hg, token, strlen(token) + 1);
 			break;
 		case 12:
-			(void) strncpy(metar.sea_level_pressure_mb, token, strlen(token));
+			(void) strncpy(metar->sea_level_pressure_mb, token, strlen(token) + 1);
 			break;
 		case 13:
-			(void) strncpy(metar.corrected, token, strlen(token));
+			(void) strncpy(metar->corrected, token, strlen(token) + 1);
 			break;
 		case 14:
-			(void) strncpy(metar.is_auto, token, strlen(token));
+			(void) strncpy(metar->is_auto, token, strlen(token) + 1);
 			break;
 		case 15:
-			(void) strncpy(metar.auto_station, token, strlen(token));
+			(void) strncpy(metar->auto_station, token, strlen(token) + 1);
 			break;
 		case 16:
-			(void) strncpy(metar.maintenance_indicator_on, token, strlen(token));
+			(void) strncpy(metar->maintenance_indicator_on, token, strlen(token) + 1);
 			break;
 		case 17:
-			(void) strncpy(metar.no_signal, token, strlen(token));
+			(void) strncpy(metar->no_signal, token, strlen(token) + 1);
 			break;
 		case 18:
-			(void) strncpy(metar.lightning_sensor_off, token, strlen(token));
+			(void) strncpy(metar->lightning_sensor_off, token, strlen(token) + 1);
 			break;
 		case 19:
-			(void) strncpy(metar.freezing_rain_sensor_off, token, strlen(token));
+			(void) strncpy(metar->freezing_rain_sensor_off, token, strlen(token) + 1);
 			break;
 		case 20:
-			(void) strncpy(metar.present_weather_sensor_off, token, strlen(token));
+			(void) strncpy(metar->present_weather_sensor_off, token, strlen(token) + 1);
 			break;
 		case 21:
-			(void) strncpy(metar.wx_string, token, strlen(token));
+			(void) strncpy(metar->wx_string, token, strlen(token) + 1);
 			break;
 		case 22:
-			(void) strncpy(metar.sky_cover_0, token, strlen(token));
+			(void) strncpy(metar->sky_cover_0, token, strlen(token) + 1);
 			break;
 		case 23:
-			(void) strncpy(metar.cloud_base_ft_agl_0, token, strlen(token));
+			(void) strncpy(metar->cloud_base_ft_agl_0, token, strlen(token) + 1);
 			break;
 		case 24:
-			(void) strncpy(metar.sky_cover_1, token, strlen(token));
+			(void) strncpy(metar->sky_cover_1, token, strlen(token) + 1);
 			break;
 		case 25:
-			(void) strncpy(metar.cloud_base_ft_agl_1, token, strlen(token));
+			(void) strncpy(metar->cloud_base_ft_agl_1, token, strlen(token) + 1);
 			break;
 		case 26:
-			(void) strncpy(metar.sky_cover_2, token, strlen(token));
+			(void) strncpy(metar->sky_cover_2, token, strlen(token) + 1);
 			break;
 		case 27:
-			(void) strncpy(metar.cloud_base_ft_agl_2, token, strlen(token));
+			(void) strncpy(metar->cloud_base_ft_agl_2, token, strlen(token) + 1);
 			break;
 		case 28:
-			(void) strncpy(metar.sky_cover_3, token, strlen(token));
+			(void) strncpy(metar->sky_cover_3, token, strlen(token) + 1);
 			break;
 		case 29:
-			(void) strncpy(metar.cloud_base_ft_agl_3, token, strlen(token));
+			(void) strncpy(metar->cloud_base_ft_agl_3, token, strlen(token) + 1);
 			break;
 		case 30:
-			(void) strncpy(metar.flight_category, token, strlen(token));
+			(void) strncpy(metar->flight_category, token, strlen(token) + 1);
 			break;
 		case 31:
-			(void) strncpy(metar.three_hr_pressure_tendency_mb, token, strlen(token));
+			(void) strncpy(metar->three_hr_pressure_tendency_mb, token, strlen(token) + 1);
 			break;
 		case 32:
-			(void) strncpy(metar.maxT_c, token, strlen(token));
+			(void) strncpy(metar->maxT_c, token, strlen(token) + 1);
 			break;
 		case 33:
-			(void) strncpy(metar.minT_c, token, strlen(token));
+			(void) strncpy(metar->minT_c, token, strlen(token) + 1);
 			break;
 		case 34:
-			(void) strncpy(metar.maxT24hr_c, token, strlen(token));
+			(void) strncpy(metar->maxT24hr_c, token, strlen(token) + 1);
 			break;
 		case 35:
-			(void) strncpy(metar.minT24hr_c, token, strlen(token));
+			(void) strncpy(metar->minT24hr_c, token, strlen(token) + 1);
 			break;
 		case 36:
-			(void) strncpy(metar.precip_in, token, strlen(token));
+			(void) strncpy(metar->precip_in, token, strlen(token) + 1);
 			break;
 		case 37:
-			(void) strncpy(metar.pcp3hr_in, token, strlen(token));
+			(void) strncpy(metar->pcp3hr_in, token, strlen(token) + 1);
 			break;
 		case 38:
-			(void) strncpy(metar.pcp6hr_in, token, strlen(token));
+			(void) strncpy(metar->pcp6hr_in, token, strlen(token) + 1);
 			break;
 		case 39:
-			(void) strncpy(metar.pcp24hr_in, token, strlen(token));
+			(void) strncpy(metar->pcp24hr_in, token, strlen(token) + 1);
 			break;
 		case 40:
-			(void) strncpy(metar.snow_in, token, strlen(token));
+			(void) strncpy(metar->snow_in, token, strlen(token) + 1);
 			break;
 		case 41:
-			(void) strncpy(metar.vert_vis_ft, token, strlen(token));
+			(void) strncpy(metar->vert_vis_ft, token, strlen(token) + 1);
 			break;
 		case 42:
-			(void) strncpy(metar.metar_type, token, strlen(token));
+			(void) strncpy(metar->metar_type, token, strlen(token) + 1);
 			break;
 		case 43:
 			if (strlen(token) > 1) {
-				(void) strncpy(metar.elevation_m, token, strlen(token) - 1);
-			} else {
-				(void) strncpy(metar.elevation_m, token, strlen(token));
+				token[strlen(token) - 1] = '\0';
 			}
+
+			(void) strncpy(metar->elevation_m, token, strlen(token) + 1);
 			break;
 		default:
 			break;
@@ -514,38 +516,40 @@ writeMetar(struct infoStruct *info, char *line)
 
 
 	(void) strlcpy(info->outputPath, info->outputBasePath, strlen(info->outputBasePath) + 1);
-	(void) strncat(info->outputPath, metar.station_id, strlen(metar.station_id));
+	(void) strncat(info->outputPath, metar->station_id, strlen(metar->station_id));
 
 	ofp = fopen(info->outputPath, "w");
 
 	if (ofp == NULL) {
-		(void) fprintf(stderr, "Could not open %s for writing.\n", metar.station_id);
+		(void) fprintf(stderr, "Could not open %s for writing.\n", metar->station_id);
 	}
 
-	(void) fprintf(ofp, "Station: %s<br />\n", metar.station_id);
-	(void) fprintf(ofp, "Type: %s<br />\n", metar.metar_type);
+	(void) fprintf(ofp, "Station: %s<br />\n", metar->station_id);
+	(void) fprintf(ofp, "Type: %s<br />\n", metar->metar_type);
 
-	if (strlen(metar.maintenance_indicator_on) > 0) {
-		(void) fprintf(ofp, "Maint: %s<br />\n", metar.maintenance_indicator_on);
+	if (strlen(metar->maintenance_indicator_on) > 0) {
+		(void) fprintf(ofp, "Maint: %s<br />\n", metar->maintenance_indicator_on);
 	}
 
-	(void) fprintf(ofp, "Time: %s<br />\n", metar.observation_time);
-	(void) fprintf(ofp, "Location: %s, %s<br />\n", metar.latitude, metar.longitude);
-	(void) fprintf(ofp, "Elevation: %s meters<br />\n", metar.elevation_m);
-	(void) fprintf(ofp, "Temp: %s&deg;C<br />\n", metar.temp_c);
-	(void) fprintf(ofp, "Dewpoint: %s&deg;C<br />\n", metar.dewpoint_c);
-	(void) fprintf(ofp, "Wind: From %s degrees at %s knots<br />\n", metar.wind_dir_degrees, metar.wind_speed_kt);
+	(void) fprintf(ofp, "Time: %s<br />\n", metar->observation_time);
+	(void) fprintf(ofp, "Location: %s, %s<br />\n", metar->latitude, metar->longitude);
+	(void) fprintf(ofp, "Elevation: %s meters<br />\n", metar->elevation_m);
+	(void) fprintf(ofp, "Temp: %s&deg;C<br />\n", metar->temp_c);
+	(void) fprintf(ofp, "Dewpoint: %s&deg;C<br />\n", metar->dewpoint_c);
+	(void) fprintf(ofp, "Wind: From %s degrees at %s knots<br />\n", metar->wind_dir_degrees, metar->wind_speed_kt);
 
-	if (strlen(metar.wind_gust_kt) > 0) {
-		(void) fprintf(ofp, "Gust: %s knots<br />\n", metar.wind_gust_kt);
+	if (strlen(metar->wind_gust_kt) > 0) {
+		(void) fprintf(ofp, "Gust: %s knots<br />\n", metar->wind_gust_kt);
 	}
 
-	(void) fprintf(ofp, "Visibility: %s miles<br />\n", metar.visibility_statute_mi);
-	(void) fprintf(ofp, "Altimeter: %s<br />\n", metar.altim_in_hg);
+	(void) fprintf(ofp, "Visibility: %s miles<br />\n", metar->visibility_statute_mi);
+	(void) fprintf(ofp, "Altimeter: %s<br />\n", metar->altim_in_hg);
 
-	if (strlen(metar.wx_string) > 0) {
-		(void) fprintf(ofp, "Weather: %s<br />\n", metar.wx_string);
+	if (strlen(metar->wx_string) > 0) {
+		(void) fprintf(ofp, "Weather: %s<br />\n", metar->wx_string);
 	}
+
+	free(metar);
 
 	fclose(ofp);
 	return;
