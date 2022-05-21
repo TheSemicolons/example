@@ -362,7 +362,6 @@ void
 writeMetar(struct infoStruct *info, char *line)
 {
 	FILE			*ofp;
-	//struct metarLine	 metar;
 	char			*token;
 	int			 x = 0;
 
