@@ -153,8 +153,8 @@ main(int argc, char *argv[])
 	info.fileItemCount = 5;
 	info.downloadItemCount = 0;
 
-	(void) strcpy(info.basePath, "/tmp/weather/raw/");
-	(void) strcpy(info.outputBasePath, "/tmp/weather/output/");
+	(void) strcpy(info.basePath, "/tmp/weather/");
+	(void) strcpy(info.outputBasePath, "/home/www/htdocs/mimas.dev/weather/");
 	(void) strcpy(info.baseUrl, "https://aviationweather.gov/adds/dataserver_current/current/");
 
 	(void) strcpy(info.fileList[0], "aircraftreports.cache.csv");
@@ -194,7 +194,7 @@ checkTime(struct infoStruct *info)
 			info->downloadItemCount++;
 		}
 
-		if ((ret == 0) && (((unsigned long)time(NULL) - fileInfo.st_mtime) >= 300)) {
+		if ((ret == 0) && (((unsigned long)time(NULL) - fileInfo.st_mtime) >= 900)) {
 			(void) strlcpy(info->downloadList[info->downloadItemCount], info->fileList[i], strlen(info->fileList[i]) + 1);
 
 			info->downloadItemCount++;
@@ -521,6 +521,8 @@ writeMetar(struct infoStruct *info, char *line)
 
 	if (ofp == NULL) {
 		(void) fprintf(stderr, "Could not open %s for writing.\n", metar->station_id);
+
+		return;
 	}
 
 	(void) fprintf(ofp, "Station: %s<br />\n", metar->station_id);
