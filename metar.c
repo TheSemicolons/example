@@ -167,6 +167,13 @@ main(int argc, char *argv[])
 
 	if (info.downloadItemCount > 0)
 	{
+/*
+ * Commented out because there has to be a better way to do this.
+ * 
+ * There is a possibility that the webpage will request a file in
+ * here in the short time between when it is removed and the new
+ * file is created. This would be bad.
+ */
 		emptyDir(&info);
 		downloadMetar(&info);
 		parseMetar(&info);
@@ -273,11 +280,16 @@ emptyDir(struct infoStruct *info)
 					continue;
 				}
 
+/*
+ * Commented out because we don't really need to delete things.
+ */
+/*
 				if (strncmp(ent->d_name, info->downloadList[i], sizeof(ent->d_name)) == 0) {
 					(void) strlcpy(info->path, info->basePath, strlen(info->basePath) + 1);
 					(void) strncat(info->path, info->downloadList[i], strlen(info->downloadList[i]));
 					(void) unlink(info->path);
 				}
+*/
 			}
 		} else {
 			ret = mkdir(info->basePath, 0700);
