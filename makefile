@@ -18,7 +18,7 @@
 .SUFFIXES:
 
 CC        = clang
-CFLAGS    = -I/usr/local/include -O3
+CFLAGS    = -I/usr/include -I/usr/local/include -O3
 LDFLAGS   = -L/usr/local/lib
 MANPREFIX = $(PREFIX)/man
 PREFIX    = /usr/local
@@ -33,7 +33,7 @@ lex_test:
 	lex lex.l
 	$(CC) lex.yy.c -o lex_test -lfl
 metar:
-	$(CC) $(CFLAGS) $(LDFLAGS) -lcrypto -lcurl -lkcgi -lnghttp2 -lpthread -lssl -lz -static -o metar metar.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -lcrypto -lcurl -lkcgi -lnghttp2 -lnghttp3 -lngtcp2 -lngtcp2_crypto_quictls -lpthread -lssl -lz -static -o metar metar.c
 
 mysql:
 	$(CC) $(CFLAGS) $(LDFLAGS) `mysql_config --cflags --libs` -o mysql mysql.c

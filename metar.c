@@ -36,6 +36,11 @@
 #include <dirent.h>
 
 /*
+ * open()
+ */
+#include <fcntl.h>
+
+/*
  * NOTE: This must come before kcgi.h.
  *
  * va_list
@@ -76,9 +81,14 @@
 
 #include <curl/curl.h>
 
+#include <zlib.h>
+
+#define CHUNK 16384
+
 struct infoStruct {
 	char	 basePath[PATH_MAX];
 	char	 baseUrl[PATH_MAX];
+	char	 csvPath[PATH_MAX];
 	char	 outputBasePath[PATH_MAX];
 	char	 outputPath[PATH_MAX];
 	char	 path[PATH_MAX];
@@ -139,6 +149,7 @@ struct metarLine {
 void		 checkTime(struct infoStruct*);
 void		 downloadMetar(struct infoStruct*);
 void		 emptyDir(struct infoStruct*);
+void		 inflateMetar(struct infoStruct*);
 void		 parseMetar(struct infoStruct*);
 void		 writeMetar(struct infoStruct*, char*);
 static size_t	 writeData(void *, size_t, size_t, FILE *);
@@ -153,27 +164,21 @@ main(int argc, char *argv[])
 
 	(void) strcpy(info.basePath, "/tmp/weather/");
 	(void) strcpy(info.outputBasePath, "/home/www/htdocs/mimas.dev/weather/");
-	(void) strcpy(info.baseUrl, "https://aviationweather.gov/adds/dataserver_current/current/");
+	(void) strcpy(info.baseUrl, "https://aviationweather.gov/data/cache/");
 
-	(void) strcpy(info.fileList[0], "aircraftreports.cache.csv");
-	(void) strcpy(info.fileList[1], "airsigmets.cache.csv");
-	(void) strcpy(info.fileList[2], "metars.cache.csv");
-	(void) strcpy(info.fileList[3], "pireps.cache.csv");
-	(void) strcpy(info.fileList[4], "tafs.cache.csv");
+	(void) strcpy(info.fileList[0], "aircraftreports.cache.csv.gz");
+	(void) strcpy(info.fileList[1], "airsigmets.cache.csv.gz");
+	(void) strcpy(info.fileList[2], "metars.cache.csv.gz");
+	(void) strcpy(info.fileList[3], "stations.cache.json.gz");
+	(void) strcpy(info.fileList[4], "tafs.cache.csv.gz");
 
 	checkTime(&info);
 
 	if (info.downloadItemCount > 0)
 	{
-/*
- * Commented out because there has to be a better way to do this.
- * 
- * There is a possibility that the webpage will request a file in
- * here in the short time between when it is removed and the new
- * file is created. This would be bad.
- */
 		emptyDir(&info);
 		downloadMetar(&info);
+		inflateMetar(&info);
 		parseMetar(&info);
 	}
 
@@ -212,9 +217,9 @@ checkTime(struct infoStruct *info)
 void
 downloadMetar(struct infoStruct *info)
 {
-	CURL	*curl;
-	FILE	*fp = NULL;
-	int	 i = 0;
+	CURL		*curl;
+	FILE		*fp = NULL;
+	int		 i = 0;
 
 	for (i = 0; i < info->downloadItemCount; i++) {
 		(void) strlcpy(info->url, info->baseUrl, strlen(info->baseUrl) + 1);
@@ -258,6 +263,7 @@ downloadMetar(struct infoStruct *info)
 				fclose(fp);
 			}
 		}
+
 	}
 
 	return;
@@ -299,6 +305,126 @@ emptyDir(struct infoStruct *info)
 				exit(1);
 			}
 		}
+	}
+
+	return;
+}
+
+void
+inflateMetar(struct infoStruct *info)
+{
+	FILE		*source = NULL;
+	FILE		*dest = NULL;
+	int		 i = 0;
+	int		 ret = 0;
+	unsigned int	 have;
+	unsigned char	 in[CHUNK];
+	unsigned char	 out[CHUNK];
+	z_stream	 strm;
+
+	for (i = 0; i < info->downloadItemCount; i++) {
+
+		(void) strlcpy(info->path, info->basePath, strlen(info->basePath) + 1);
+		(void) strncat(info->path, info->downloadList[i], strlen(info->downloadList[i]));
+		(void) strncat(info->csvPath, info->path, strlen(info->path) - 3);
+
+		// @TODO
+		char command[PATH_MAX];
+		(void) strlcpy(command, "gunzip ", strlen("gunzip ") + 1);
+		(void) strncat(command, info->path, strlen(info->path));
+		system(command);
+		// @TODO
+
+		// @TODO
+		//(void) fprintf(stderr, "GZ: %s\n", info->path);
+		//(void) fprintf(stderr, "CSV: %s\n", info->csvPath);
+		// @TODO
+/*
+		strm.avail_in = 0;
+		strm.opaque = Z_NULL;
+		strm.next_in = Z_NULL;
+		strm.zalloc = Z_NULL;
+		strm.zfree = Z_NULL;
+
+		dest = fopen(info->csvPath, "rb");
+
+		if (dest == NULL) {
+			return;
+		}
+
+		source = fopen(info->path, "wb");
+
+		if (source == NULL) {
+			return;
+		}
+
+		ret = inflateInit(&strm);
+
+		if (ret != Z_OK) {
+			(void) fprintf(stderr, "Error during init: %d\n", ret);
+
+			return;
+		}
+
+		do {
+			strm.avail_in = fread(in, 1, CHUNK, source);
+
+			if (ferror(source)) {
+				(void) inflateEnd(&strm);
+				(void) fprintf(stderr, "Error opening source: %d\n", Z_ERRNO);
+
+				return;
+			}
+
+			if (strm.avail_in == 0) {
+				break;
+			}
+
+			strm.next_in = in;
+
+			do {
+				strm.avail_out = CHUNK;
+				strm.next_out = out;
+				ret = inflate(&strm, Z_NO_FLUSH);
+
+				switch (ret) {
+				case Z_STREAM_ERROR:
+					(void) inflateEnd(&strm);
+					(void) fprintf(stderr, "Stream Error: %d\n", Z_STREAM_ERROR);
+
+					return;
+				case Z_NEED_DICT:
+					(void) inflateEnd(&strm);
+					(void) fprintf(stderr, "Need Dict: %d\n", Z_NEED_DICT);
+
+					return;
+				case Z_DATA_ERROR:
+					(void) inflateEnd(&strm);
+					(void) fprintf(stderr, "Data Error: %d\n", Z_DATA_ERROR);
+
+					return;
+				case Z_MEM_ERROR:
+					(void) inflateEnd(&strm);
+					(void) fprintf(stderr, "Memory Error: %d\n", Z_MEM_ERROR);
+
+					return;
+				}
+
+				have = CHUNK - strm.avail_out;
+
+				if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
+					(void) inflateEnd(&strm);
+					(void) fprintf(stderr, "Error writing file: %d\n", Z_ERRNO);
+
+					return;
+				}
+
+			} while (strm.avail_out == 0);
+		} while (ret != Z_STREAM_END);
+
+		(void) inflateEnd(&strm);
+		(void) fprintf(stderr, "Inflate status: %d\n", Z_STREAM_END ? Z_OK : Z_DATA_ERROR);
+	*/
 	}
 
 	return;
