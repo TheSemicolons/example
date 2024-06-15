@@ -24,10 +24,7 @@ MANPREFIX = $(PREFIX)/man
 PREFIX    = /usr/local
 VERSION   = 0.1
 
-all: check_password lex_test metar mysql spin struct threads
-
-check_password:
-	$(CC) $(CFLAGS) $(LDFLAGS) -lutil -o check_password check_password.c
+all: lex_test metar mysql spin struct threads
 
 lex_test:
 	lex lex.l
@@ -51,4 +48,4 @@ clean:
 	rm -f *.o *.core *.yy.c
 
 nuke: clean
-	rm -f check_password lex_test metar mysql spin struct threads
+	rm -f lex_test metar mysql spin struct threads
